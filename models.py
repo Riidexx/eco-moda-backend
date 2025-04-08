@@ -10,7 +10,7 @@ class Producto(Base):
     descripcion = Column(String)
     precio = Column(Float)
 
-    inventario = relationship("Inventario", back_populates="producto")
+    inventario = relationship("Inventario", back_populates="producto", uselist=False)
 
 class Inventario(Base):
     __tablename__ = "inventario"

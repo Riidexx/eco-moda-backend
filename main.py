@@ -1,28 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-import crud, models, schemas
-from database import engine, SessionLocal
-from fastapi.middleware.cors import CORSMiddleware
+import models, schemas, crud
+from database import SessionLocal, engine
 
-# Crea las tablas en la base de datos
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="EcoModa API",
     description="Backend del sistema de gestión de inventario de EcoModa",
-    version="1.0.0",
+    version="1.0.0"
 )
 
-# Middleware CORS (permite conexión con el frontend)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Reemplazar con dominio del frontend en producción
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Dependencia para obtener la sesión de DB
+# Dependencia para obtener sesión de base de datos
 def get_db():
     db = SessionLocal()
     try:
@@ -30,62 +19,65 @@ def get_db():
     finally:
         db.close()
 
-# ========== RUTAS PRODUCTOS ==========
+# ========= PRODUCTOS ==========
 
 @app.post("/productos/", response_model=schemas.Producto)
-def crear_producto(producto: schemas.ProductoCreate, stock: int = 0, db: Session = Depends(get_db)):
+def crear_producto(producto: schemas.ProductoCreate, stock: int, db: Session = Depends(get_db)):
     db_producto = crud.crear_producto(db, producto)
     crud.crear_inventario(db, schemas.InventarioCreate(producto_id=db_producto.id, cantidad=stock))
     return db_producto
 
-@app.get("/productos/")
-def listar_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    productos = crud.obtener_productos(db, skip, limit)
-    productos_con_stock = []
-    for producto in productos:
-        stock = crud.obtener_stock_producto(db, producto.id)
-        producto_dict = producto.__dict__.copy()
-        producto_dict["stock"] = stock.cantidad if stock else 0
-        productos_con_stock.append(producto_dict)
-    return productos_con_stock
+@app.get("/productos/", response_model=list[schemas.Producto])
+def obtener_productos(db: Session = Depends(get_db)):
+    return crud.obtener_productos(db)
 
-@app.get("/productos/{producto_id}")
+@app.get("/productos/{producto_id}", response_model=schemas.Producto)
 def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
-    db_producto = crud.obtener_producto(db, producto_id)
-    if db_producto is None:
+    producto = crud.obtener_producto(db, producto_id)
+    if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    stock = crud.obtener_stock_producto(db, producto_id)
-    producto_dict = db_producto.__dict__.copy()
-    producto_dict["stock"] = stock.cantidad if stock else 0
-    return producto_dict
+    return producto
 
 @app.delete("/productos/{producto_id}", response_model=schemas.Producto)
 def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
-    db_producto = crud.eliminar_producto(db, producto_id)
-    if db_producto is None:
+    producto = crud.eliminar_producto(db, producto_id)
+    if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    return db_producto
+    return producto
 
-# ========== RUTAS INVENTARIO ==========
-
-@app.post("/inventario/", response_model=schemas.Inventario)
-def crear_inventario(inventario: schemas.InventarioCreate, db: Session = Depends(get_db)):
-    return crud.crear_inventario(db, inventario)
+# ========= INVENTARIO ==========
 
 @app.get("/inventario/", response_model=list[schemas.Inventario])
-def listar_inventario(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.obtener_inventario(db, skip, limit)
+def obtener_inventario(db: Session = Depends(get_db)):
+    return crud.obtener_inventario(db)
 
 @app.get("/inventario/{producto_id}", response_model=schemas.Inventario)
-def obtener_stock(producto_id: int, db: Session = Depends(get_db)):
-    db_stock = crud.obtener_stock_producto(db, producto_id)
-    if db_stock is None:
-        raise HTTPException(status_code=404, detail="Inventario no encontrado")
-    return db_stock
+def obtener_stock_producto(producto_id: int, db: Session = Depends(get_db)):
+    stock = crud.obtener_stock_producto(db, producto_id)
+    if not stock:
+        raise HTTPException(status_code=404, detail="Producto no tiene inventario")
+    return stock
 
-@app.put("/inventario/{producto_id}", response_model=schemas.Inventario)
-def actualizar_stock(producto_id: int, cantidad: int, db: Session = Depends(get_db)):
-    db_stock = crud.actualizar_stock(db, producto_id, cantidad)
-    if db_stock is None:
-        raise HTTPException(status_code=404, detail="Inventario no encontrado")
-    return db_stock
+@app.post("/reducir_stock/", response_model=schemas.Inventario)
+def reducir_stock(producto_id: int, cantidad: int, db: Session = Depends(get_db)):
+    stock = crud.obtener_stock_producto(db, producto_id)
+    if not stock or stock.cantidad < cantidad:
+        raise HTTPException(status_code=400, detail="Stock insuficiente")
+    return crud.actualizar_stock(db, producto_id, stock.cantidad - cantidad)
+
+@app.post("/comprar/", response_model=schemas.CompraConfirmacion)
+def comprar_producto(producto_id: int, cantidad: int, db: Session = Depends(get_db)):
+    stock = crud.obtener_stock_producto(db, producto_id)
+    producto = crud.obtener_producto(db, producto_id)
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    if not stock or stock.cantidad < cantidad:
+        raise HTTPException(status_code=400, detail="Stock insuficiente")
+    
+    nuevo_stock = crud.actualizar_stock(db, producto_id, stock.cantidad - cantidad)
+    
+    return schemas.CompraConfirmacion(
+        producto=producto,
+        cantidad=cantidad,
+        mensaje=f"Compra exitosa. Quedan {nuevo_stock.cantidad} unidades en inventario."
+    )

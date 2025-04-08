@@ -10,8 +10,8 @@ def crear_producto(db: Session, producto: schemas.ProductoCreate):
     db.refresh(db_producto)
     return db_producto
 
-def obtener_productos(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Producto).offset(skip).limit(limit).all()
+def obtener_productos(db: Session):
+    return db.query(models.Producto).all()
 
 def obtener_producto(db: Session, producto_id: int):
     return db.query(models.Producto).filter(models.Producto.id == producto_id).first()
@@ -32,8 +32,8 @@ def crear_inventario(db: Session, inventario: schemas.InventarioCreate):
     db.refresh(db_inventario)
     return db_inventario
 
-def obtener_inventario(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Inventario).offset(skip).limit(limit).all()
+def obtener_inventario(db: Session):
+    return db.query(models.Inventario).all()
 
 def obtener_stock_producto(db: Session, producto_id: int):
     return db.query(models.Inventario).filter(models.Inventario.producto_id == producto_id).first()

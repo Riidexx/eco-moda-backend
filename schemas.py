@@ -30,3 +30,10 @@ class Inventario(InventarioBase):
 
     class Config:
         orm_mode = True
+
+# ========== COMPRA ==========
+
+class CompraConfirmacion(BaseModel):
+    producto: Producto
+    cantidad: int
+    mensaje: str
