@@ -16,7 +16,10 @@ def crear_producto(db: Session, producto: schemas.ProductoCreate, stock: int):
     db.commit()
     db.refresh(db_inventario)
     
-    return db_producto
+    # Devuelve tanto el producto como su inventario
+    producto_con_inventario = db_producto
+    producto_con_inventario.stock = db_inventario.cantidad
+    return producto_con_inventario
 
 def obtener_productos(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Producto).offset(skip).limit(limit).all()
