@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 import crud, models, schemas
 from database import engine, SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import joinedload
 
 # Crea las tablas en la base de datos
 models.Base.metadata.create_all(bind=engine)
@@ -35,16 +34,12 @@ def get_db():
 # ========== RUTAS PRODUCTOS ==========
 
 @app.post("/productos/", response_model=schemas.Producto)
-def crear_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
-    return crud.crear_producto(db, producto)
+def crear_producto(producto: schemas.ProductoCreate, stock: int, db: Session = Depends(get_db)):
+    return crud.crear_producto(db, producto, stock)
 
 @app.get("/productos/", response_model=list[schemas.Producto])
 def listar_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    productos = db.query(models.Producto).options(joinedload(models.Producto.inventario)).offset(skip).limit(limit).all()
-    # Incluir stock en la respuesta
-    for producto in productos:
-        producto.stock = producto.inventario[0].cantidad if producto.inventario else 0
-    return productos
+    return crud.obtener_productos(db, skip, limit)
 
 @app.get("/productos/{producto_id}", response_model=schemas.Producto)
 def obtener_producto(producto_id: int, db: Session = Depends(get_db)):

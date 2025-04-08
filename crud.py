@@ -4,19 +4,22 @@ import models, schemas
 
 # ========== PRODUCTOS ==========
 
-def crear_producto(db: Session, producto: schemas.ProductoCreate):
+def crear_producto(db: Session, producto: schemas.ProductoCreate, stock: int):
     db_producto = models.Producto(**producto.dict())
     db.add(db_producto)
     db.commit()
     db.refresh(db_producto)
+    
+    # Crear el inventario para el producto con el stock
+    db_inventario = models.Inventario(producto_id=db_producto.id, cantidad=stock)
+    db.add(db_inventario)
+    db.commit()
+    db.refresh(db_inventario)
+    
     return db_producto
 
 def obtener_productos(db: Session, skip: int = 0, limit: int = 100):
-    productos = db.query(models.Producto).options(joinedload(models.Producto.inventario)).offset(skip).limit(limit).all()
-    # Incluir stock en la respuesta
-    for producto in productos:
-        producto.stock = producto.inventario[0].cantidad if producto.inventario else 0  # Asegúrate de obtener el stock
-    return productos
+    return db.query(models.Producto).offset(skip).limit(limit).all()
 
 def obtener_producto(db: Session, producto_id: int):
     return db.query(models.Producto).filter(models.Producto.id == producto_id).first()

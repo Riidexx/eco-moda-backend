@@ -8,7 +8,6 @@ class ProductoBase(BaseModel):
     descripcion: Optional[str] = None
     precio: float
     categoria: Optional[str] = None
-    stock: Optional[int] = 0  # Agregar el campo stock aquí
 
 class ProductoCreate(ProductoBase):
     pass
