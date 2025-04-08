@@ -6,7 +6,6 @@ class ProductoBase(BaseModel):
     nombre: str
     descripcion: str
     precio: float
-    categoria: str | None = None  # Si planeas usarlo
 
 class ProductoCreate(ProductoBase):
     pass
