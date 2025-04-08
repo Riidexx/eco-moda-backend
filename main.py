@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from models import Product, Inventory  # Asegúrate de tener estos modelos correctamente definidos
 from database import SessionLocal, engine
 from sqlalchemy import create_engine
+from fastapi import Depends
+
 
 app = FastAPI()
 
