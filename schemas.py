@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
 
-
 # ===== PRODUCTO =====
 class ProductoBase(BaseModel):
     nombre: str

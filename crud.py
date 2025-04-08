@@ -1,25 +1,14 @@
 from sqlalchemy.orm import Session
 import models, schemas
 
-
 # ========== PRODUCTOS ==========
 
-def crear_producto(db: Session, producto: schemas.ProductoCreate, stock: int):
+def crear_producto(db: Session, producto: schemas.ProductoCreate):
     db_producto = models.Producto(**producto.dict())
     db.add(db_producto)
     db.commit()
     db.refresh(db_producto)
-    
-    # Crear el inventario para el producto con el stock
-    db_inventario = models.Inventario(producto_id=db_producto.id, cantidad=stock)
-    db.add(db_inventario)
-    db.commit()
-    db.refresh(db_inventario)
-    
-    # Devuelve tanto el producto como su inventario
-    producto_con_inventario = db_producto
-    producto_con_inventario.stock = db_inventario.cantidad
-    return producto_con_inventario
+    return db_producto
 
 def obtener_productos(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Producto).offset(skip).limit(limit).all()

@@ -34,11 +34,14 @@ def get_db():
 # ========== RUTAS PRODUCTOS ==========
 
 @app.post("/productos/", response_model=schemas.Producto)
-def crear_producto(producto: schemas.ProductoCreate, stock: int, db: Session = Depends(get_db)):
-    db_producto = crud.crear_producto(db, producto, stock)
-    # Añadir stock al modelo de respuesta para devolverlo
-    return {"id": db_producto.id, "nombre": db_producto.nombre, "descripcion": db_producto.descripcion,
-            "precio": db_producto.precio, "categoria": db_producto.categoria, "stock": stock}
+def crear_producto(producto: schemas.ProductoCreate, stock: int = 0, db: Session = Depends(get_db)):
+    # Crear producto
+    db_producto = crud.crear_producto(db, producto)
+    
+    # Crear inventario con el stock proporcionado
+    crud.crear_inventario(db, schemas.InventarioCreate(producto_id=db_producto.id, cantidad=stock))
+    
+    return db_producto
 
 @app.get("/productos/", response_model=list[schemas.Producto])
 def listar_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
