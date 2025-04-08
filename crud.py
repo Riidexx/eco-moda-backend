@@ -23,7 +23,6 @@ def eliminar_producto(db: Session, producto_id: int):
         db.commit()
     return db_producto
 
-
 # ========== INVENTARIO ==========
 
 def crear_inventario(db: Session, inventario: schemas.InventarioCreate):
