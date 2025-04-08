@@ -1,5 +1,3 @@
-# crud.py
-
 from sqlalchemy.orm import Session
 import models, schemas
 
@@ -14,7 +12,11 @@ def crear_producto(db: Session, producto: schemas.ProductoCreate):
     return db_producto
 
 def obtener_productos(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Producto).offset(skip).limit(limit).all()
+    productos = db.query(models.Producto).options(joinedload(models.Producto.inventario)).offset(skip).limit(limit).all()
+    # Incluir stock en la respuesta
+    for producto in productos:
+        producto.stock = producto.inventario[0].cantidad if producto.inventario else 0  # Asegúrate de obtener el stock
+    return productos
 
 def obtener_producto(db: Session, producto_id: int):
     return db.query(models.Producto).filter(models.Producto.id == producto_id).first()
