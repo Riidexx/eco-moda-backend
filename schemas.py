@@ -17,7 +17,6 @@ class Producto(ProductoBase):
     class Config:
         orm_mode = True
 
-
 # ===== INVENTARIO =====
 class InventarioBase(BaseModel):
     producto_id: int

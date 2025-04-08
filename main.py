@@ -34,39 +34,30 @@ def get_db():
 
 @app.post("/productos/", response_model=schemas.Producto)
 def crear_producto(producto: schemas.ProductoCreate, stock: int = 0, db: Session = Depends(get_db)):
-    # Crear producto
     db_producto = crud.crear_producto(db, producto)
-    
-    # Crear inventario con el stock proporcionado
     crud.crear_inventario(db, schemas.InventarioCreate(producto_id=db_producto.id, cantidad=stock))
-    
     return db_producto
 
-@app.get("/productos/", response_model=list[schemas.Producto])
+@app.get("/productos/")
 def listar_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     productos = crud.obtener_productos(db, skip, limit)
     productos_con_stock = []
     for producto in productos:
-        # Obtener el stock de cada producto
         stock = crud.obtener_stock_producto(db, producto.id)
-        producto_dict = producto.__dict__
+        producto_dict = producto.__dict__.copy()
         producto_dict["stock"] = stock.cantidad if stock else 0
         productos_con_stock.append(producto_dict)
-    
     return productos_con_stock
 
-@app.get("/productos/{producto_id}", response_model=schemas.Producto)
+@app.get("/productos/{producto_id}")
 def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
     db_producto = crud.obtener_producto(db, producto_id)
     if db_producto is None:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    
-    # Obtener el stock de este producto
     stock = crud.obtener_stock_producto(db, producto_id)
-    db_producto_dict = db_producto.__dict__
-    db_producto_dict["stock"] = stock.cantidad if stock else 0
-    
-    return db_producto_dict
+    producto_dict = db_producto.__dict__.copy()
+    producto_dict["stock"] = stock.cantidad if stock else 0
+    return producto_dict
 
 @app.delete("/productos/{producto_id}", response_model=schemas.Producto)
 def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
